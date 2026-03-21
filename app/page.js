@@ -69,13 +69,13 @@ const steps = [
 function Logo({ className = '', size = 'default' }) {
   const iconSize = size === 'small' ? 'w-7 h-7' : 'w-8 h-8';
   const iconInner = size === 'small' ? 'w-3.5 h-3.5' : 'w-4.5 h-4.5';
-  const textSize = size === 'small' ? 'text-[1.2rem]' : 'text-[1.4rem]';
+  const textSize = size === 'small' ? 'text-[1.3rem]' : 'text-[1.6rem]';
   return (
     <span className={`flex items-center gap-2.5 ${className}`}>
       <span className={`${iconSize} rounded-lg bg-gradient-to-br from-[#6d28d9] to-[#ec4899] flex items-center justify-center shadow-sm`}>
         <Ticket className={`${iconInner} text-white`} strokeWidth={2.5} />
       </span>
-      <span className={`${textSize} font-bold font-[family-name:var(--font-logo)] bg-gradient-to-r from-[#6d28d9] to-[#ec4899] bg-clip-text text-transparent`}>
+      <span className={`${textSize} font-extrabold font-[family-name:var(--font-logo)] bg-gradient-to-r from-[#6d28d9] to-[#ec4899] bg-clip-text text-transparent`}>
         TippyTix
       </span>
     </span>
@@ -129,9 +129,8 @@ export default function HomePage() {
             <h1 className="font-[family-name:var(--font-display)] text-[clamp(2.8rem,6vw,4.5rem)] leading-[1.05] tracking-[-0.025em] text-white">
               Sell tickets.{' '}
               <span className="bg-gradient-to-r from-[#c4b5fd] via-[#e879f9] to-[#f9a8d4] bg-clip-text text-transparent">
-                Scan at the door.
-              </span>{' '}
-              That&apos;s it.
+                No BS fees.
+              </span>
             </h1>
 
             <p className="mt-7 text-[1.15rem] leading-[1.7] text-white/70 max-w-xl">
@@ -145,7 +144,7 @@ export default function HomePage() {
                 </Button>
               </Link>
               <a href="#how-it-works">
-                <Button variant="ghost" className="text-[0.92rem] font-medium rounded-full px-7 h-12 text-white/70 hover:text-white hover:bg-white/10">
+                <Button variant="ghost" className="text-[0.92rem] font-medium rounded-full px-7 h-12 text-white border border-white/30 hover:bg-white/15">
                   See how it works
                 </Button>
               </a>
@@ -210,6 +209,38 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ─── NO BS FEES ─── */}
+      <section className="bg-[#0a0a0a] text-white relative overflow-hidden">
+        <div className="relative max-w-6xl mx-auto px-6 pt-28 pb-10">
+          <div className="max-w-3xl mx-auto text-center">
+            <p className="text-[0.78rem] font-semibold uppercase tracking-[0.15em] text-[#f97316] mb-4">Enough is enough</p>
+            <h2 className="font-[family-name:var(--font-display)] text-[clamp(2rem,4.5vw,3.2rem)] leading-[1.1] tracking-[-0.02em]">
+              No <span className="bg-gradient-to-r from-[#f97316] to-[#ef4444] bg-clip-text text-transparent">Bullsh*t</span> fees.
+            </h2>
+            <p className="mt-6 text-[1.1rem] text-white/50 max-w-xl mx-auto leading-relaxed">
+              Other platforms bury you in &ldquo;service fees,&rdquo; &ldquo;processing fees,&rdquo; &ldquo;facility charges,&rdquo; and whatever else they can dream up. Your ticket buyers end up paying double. We don&apos;t do that.
+            </p>
+            <div className="mt-10 grid sm:grid-cols-3 gap-6 max-w-2xl mx-auto">
+              <div className="bg-white/[0.04] rounded-2xl border border-white/[0.06] p-6">
+                <p className="text-2xl font-bold text-red-400 line-through decoration-2 opacity-70">$14.50</p>
+                <p className="text-[0.82rem] text-white/40 mt-1">&ldquo;Service fee&rdquo;</p>
+              </div>
+              <div className="bg-white/[0.04] rounded-2xl border border-white/[0.06] p-6">
+                <p className="text-2xl font-bold text-red-400 line-through decoration-2 opacity-70">$3.75</p>
+                <p className="text-[0.82rem] text-white/40 mt-1">&ldquo;Order processing&rdquo;</p>
+              </div>
+              <div className="bg-white/[0.04] rounded-2xl border border-white/[0.06] p-6">
+                <p className="text-2xl font-bold text-red-400 line-through decoration-2 opacity-70">$2.50</p>
+                <p className="text-[0.82rem] text-white/40 mt-1">&ldquo;Facility charge&rdquo;</p>
+              </div>
+            </div>
+            <p className="mt-8 text-[0.95rem] text-white/60">
+              One price. No surprises. Your customers see exactly what they pay.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* ─── PRICING ─── */}
       <section id="pricing" className="bg-[#0a0a0a] text-white relative overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-b from-[#6d28d9]/20 to-transparent blur-[100px] rounded-full" />
@@ -218,7 +249,7 @@ export default function HomePage() {
           <div className="max-w-3xl mx-auto text-center">
             <p className="text-[0.78rem] font-semibold uppercase tracking-[0.15em] text-[#8b5cf6] mb-3">Pricing</p>
             <h2 className="font-[family-name:var(--font-display)] text-[clamp(1.8rem,3.5vw,2.6rem)] leading-[1.15] tracking-[-0.02em]">
-              No subscriptions. No hidden fees.
+              No subscriptions. No <span className="bg-gradient-to-r from-[#f97316] to-[#ef4444] bg-clip-text text-transparent">Bullsh*t</span> fees.
             </h2>
             <p className="mt-5 text-[1.05rem] text-white/50 max-w-lg mx-auto leading-relaxed">
               Free to create events. You only pay when you sell tickets. Simple, transparent, fair.
@@ -314,6 +345,7 @@ export default function HomePage() {
               <nav className="space-y-2.5 text-[0.85rem]">
                 <Link href="/terms" className="block text-white/60 hover:text-white transition-colors">Terms of Service</Link>
                 <Link href="/privacy" className="block text-white/60 hover:text-white transition-colors">Privacy Policy</Link>
+                <Link href="/security" className="block text-white/60 hover:text-white transition-colors">Security</Link>
               </nav>
             </div>
           </div>
