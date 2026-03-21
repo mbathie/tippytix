@@ -301,13 +301,13 @@ export function EventPage({ event }) {
 
             {event.refundPolicy?.length > 0 && (
               <div className="text-center">
-                <button
-                  type="button"
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setShowRefundPolicy(prev => !prev)}
-                  className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   {showRefundPolicy ? 'Hide' : 'View'} Refund Policy
-                </button>
+                </Button>
                 {showRefundPolicy && (
                   <Card className="mt-2 text-left">
                     <CardContent className="pt-4">
