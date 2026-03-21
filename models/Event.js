@@ -70,11 +70,15 @@ const EventSchema = new mongoose.Schema({
   },
   primaryColor: {
     type: String,
-    default: '#6d28d9',
+    default: 'violet-700',
   },
   secondaryColor: {
     type: String,
-    default: '#ec4899',
+    default: 'pink-500',
+  },
+  backgroundPattern: {
+    type: String,
+    default: 'none',
   },
   venue: {
     type: String,

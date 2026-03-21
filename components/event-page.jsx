@@ -8,6 +8,9 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Ticket, MapPin, Calendar, Clock, Minus, Plus, Loader2, CheckCircle } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import { getColorHex } from '@/components/ui/color-picker';
+import { getPatternCSS } from '@/lib/patterns';
+import { format as formatDate } from 'date-fns';
 import { StripeCheckout } from '@/components/stripe-checkout';
 
 export function EventPage({ event }) {
@@ -15,6 +18,7 @@ export function EventPage({ event }) {
   const [cart, setCart] = useState({});
   const [customer, setCustomer] = useState({ name: '', email: '', phone: '', address: '' });
   const [orderData, setOrderData] = useState(null);
+  const [showRefundPolicy, setShowRefundPolicy] = useState(false);
 
   const totalQuantity = Object.values(cart).reduce((sum, q) => sum + q, 0);
 
@@ -76,50 +80,54 @@ export function EventPage({ event }) {
   }
 
   const startDate = event.startDate ? new Date(event.startDate) : null;
+  const primaryHex = getColorHex(event.primaryColor) || event.primaryColor;
+  const secondaryHex = getColorHex(event.secondaryColor) || event.secondaryColor;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" suppressHydrationWarning style={{
+      backgroundColor: `${secondaryHex}15`,
+      backgroundImage: getPatternCSS(event.backgroundPattern, secondaryHex, 0.2) || undefined,
+    }}>
       {/* Banner */}
       <div className="w-full">
         {event.bannerImage ? (
           <img src={event.bannerImage} alt={event.name} className="w-full h-auto" />
         ) : (
-          <div className="w-full aspect-[3/1]" style={{ background: `linear-gradient(135deg, ${event.primaryColor}, ${event.secondaryColor})` }} />
+          <div className="w-full aspect-[3/1]" style={{ background: `linear-gradient(135deg, ${primaryHex}, ${secondaryHex})` }} />
         )}
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+      <style suppressHydrationWarning>{`
+        .event-content [data-slot="card"] {
+          background: linear-gradient(${secondaryHex}18, ${secondaryHex}18), #fafafa;
+          border-color: ${secondaryHex}30;
+          background-image: none !important;
+        }
+      `}</style>
+      <div className="event-content max-w-3xl mx-auto px-4 py-8 space-y-6">
         {/* Event name and details below banner */}
         <div>
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">{event.name}</h1>
-          <div className="flex flex-wrap items-center gap-4 mt-3 text-gray-500 text-sm">
+          <div className="flex flex-wrap items-center gap-3 mt-3 text-gray-600 text-sm">
             {startDate && (
               <>
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1.5 bg-white/70 backdrop-blur-sm rounded-full px-3 py-1">
                   <Calendar className="w-4 h-4" />
-                  {startDate.toLocaleDateString('en-AU', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                  {formatDate(startDate, 'EEEE d MMMM yyyy')}
                 </span>
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1.5 bg-white/70 backdrop-blur-sm rounded-full px-3 py-1">
                   <Clock className="w-4 h-4" />
-                  {startDate.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit' })}
+                  {formatDate(startDate, 'h:mm a')}{event.endDate && ` – ${formatDate(new Date(event.endDate), 'h:mm a')}`}
                 </span>
               </>
             )}
             {event.venue && (
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-1.5 bg-white/70 backdrop-blur-sm rounded-full px-3 py-1">
                 <MapPin className="w-4 h-4" /> {event.venue}
               </span>
             )}
           </div>
         </div>
-        {event.description && (
-          <Card>
-            <CardContent className="pt-6">
-              <p className="text-gray-700 whitespace-pre-wrap">{event.description}</p>
-            </CardContent>
-          </Card>
-        )}
-
         {step === 'success' ? (
           <Card className="border-green-500 border-2">
             <CardContent className="py-12 text-center">
@@ -211,7 +219,7 @@ export function EventPage({ event }) {
                   onClick={handleProceedToPayment}
                   disabled={!customer.name || !customer.email}
                   className="flex-1"
-                  style={{ backgroundColor: event.primaryColor }}
+                  style={{ background: `linear-gradient(135deg, ${primaryHex}, ${secondaryHex})` }}
                 >
                   Continue to Payment
                 </Button>
@@ -239,10 +247,12 @@ export function EventPage({ event }) {
                             {!cat.isAvailable && !cat.isSoldOut && <Badge variant="secondary" className="text-xs">Coming Soon</Badge>}
                           </div>
                           {cat.description && <p className="text-sm text-gray-500 mt-0.5">{cat.description}</p>}
-                          <p className="text-lg font-bold mt-1" style={{ color: event.primaryColor }}>
+                          <p className="text-lg font-bold mt-1" style={{ color: primaryHex }}>
                             {formatCurrency(cat.price)}
                           </p>
-                          <p className="text-xs text-gray-400">{cat.remaining} remaining</p>
+                          {!cat.isSoldOut && cat.quantity > 0 && (cat.sold / cat.quantity) >= 0.75 && (
+                            <p className="text-xs text-orange-500 font-medium">Almost sold out</p>
+                          )}
                         </div>
                         {cat.isAvailable && !cat.isSoldOut && (
                           <div className="flex items-center gap-3">
@@ -264,7 +274,7 @@ export function EventPage({ event }) {
 
             {totalQuantity > 0 && (
               <div className="sticky bottom-4">
-                <Card className="shadow-lg border-2" style={{ borderColor: event.primaryColor }}>
+                <Card className="shadow-lg border-2" style={{ borderColor: primaryHex }}>
                   <CardContent className="py-4">
                     <div className="flex items-center justify-between">
                       <div>
@@ -272,7 +282,7 @@ export function EventPage({ event }) {
                         <p className="text-xl font-bold">{formatCurrency(total)}</p>
                         <p className="text-xs text-gray-400">incl. {formatCurrency(platformFee)} service fee</p>
                       </div>
-                      <Button size="lg" onClick={() => setStep('details')} style={{ backgroundColor: event.primaryColor }}>
+                      <Button size="lg" onClick={() => setStep('details')} style={{ background: `linear-gradient(135deg, ${primaryHex}, ${secondaryHex})` }}>
                         Get Tickets
                       </Button>
                     </div>
@@ -281,22 +291,38 @@ export function EventPage({ event }) {
               </div>
             )}
 
-            {event.refundPolicy?.length > 0 && (
+            {event.description && (
               <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Refund Policy</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="text-sm text-gray-500 space-y-1">
-                    {event.refundPolicy.sort((a, b) => b.daysBeforeEvent - a.daysBeforeEvent).map((tier, i) => (
-                      <li key={i}>
-                        {tier.daysBeforeEvent}+ days before event: {tier.refundPercentage}% refund
-                        {tier.refundPercentage > 0 ? ' (minus $2 handling fee)' : ''}
-                      </li>
-                    ))}
-                  </ul>
+                <CardContent className="pt-6">
+                  <p className="text-gray-700 whitespace-pre-wrap">{event.description}</p>
                 </CardContent>
               </Card>
+            )}
+
+            {event.refundPolicy?.length > 0 && (
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => setShowRefundPolicy(prev => !prev)}
+                  className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  {showRefundPolicy ? 'Hide' : 'View'} Refund Policy
+                </button>
+                {showRefundPolicy && (
+                  <Card className="mt-2 text-left">
+                    <CardContent className="pt-4">
+                      <ul className="text-sm text-gray-500 space-y-1">
+                        {event.refundPolicy.sort((a, b) => b.daysBeforeEvent - a.daysBeforeEvent).map((tier, i) => (
+                          <li key={i}>
+                            {tier.daysBeforeEvent}+ days before event: {tier.refundPercentage}% refund
+                            {tier.refundPercentage > 0 ? ' (minus $2 handling fee)' : ''}
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             )}
           </>
         )}

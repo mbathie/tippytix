@@ -19,9 +19,10 @@ export async function GET(request, { params }) {
       return NextResponse.json({ message: 'Event not found' }, { status: 404 });
     }
 
-    // Get order stats
+    // Get order stats - only succeeded orders
     const orders = await Order.find({ eventId: id, status: 'succeeded' }).lean();
-    const tickets = await Ticket.find({ eventId: id }).lean();
+    const succeededOrderIds = orders.map(o => o._id);
+    const tickets = await Ticket.find({ eventId: id, orderId: { $in: succeededOrderIds } }).lean();
 
     const totalRevenue = orders.reduce((sum, o) => sum + o.subtotal, 0);
     const totalFees = orders.reduce((sum, o) => sum + o.platformFee, 0);

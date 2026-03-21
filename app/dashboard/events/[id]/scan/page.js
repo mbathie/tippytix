@@ -12,7 +12,7 @@ export default function ScanPage() {
   const router = useRouter();
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
-  const [scanning, setScanning] = useState(false);
+  const [scanning, setScanning] = useState(true);
   const [result, setResult] = useState(null);
   const [manualCode, setManualCode] = useState('');
   const [cameraError, setCameraError] = useState(null);
@@ -129,7 +129,6 @@ export default function ScanPage() {
         </Button>
       </div>
 
-      <h1 className="text-2xl font-bold">Scan Tickets</h1>
 
       {result ? (
         <Card className={result.valid ? 'border-green-500 border-2' : result.alreadyScanned ? 'border-yellow-500 border-2' : 'border-red-500 border-2'}>

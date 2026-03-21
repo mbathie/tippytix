@@ -9,6 +9,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+// Format a Date to local datetime-local string (YYYY-MM-DDTHH:MM)
+function toLocalDateTimeString(d) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
 export function DateTimePicker({ value, onChange, placeholder = 'Pick date & time', required = false }) {
   const [open, setOpen] = useState(false);
 
@@ -21,14 +31,16 @@ export function DateTimePicker({ value, onChange, placeholder = 'Pick date & tim
     const newDate = new Date(selectedDate);
     newDate.setHours(hours);
     newDate.setMinutes(minutes);
-    onChange(newDate.toISOString().slice(0, 16));
+    newDate.setSeconds(0);
+    onChange(toLocalDateTimeString(newDate));
   }
 
   function handleTimeChange(type, val) {
     const d = date ? new Date(date) : new Date();
     if (type === 'hour') d.setHours(parseInt(val));
     if (type === 'minute') d.setMinutes(parseInt(val));
-    onChange(d.toISOString().slice(0, 16));
+    d.setSeconds(0);
+    onChange(toLocalDateTimeString(d));
   }
 
   return (
@@ -50,6 +62,7 @@ export function DateTimePicker({ value, onChange, placeholder = 'Pick date & tim
           mode="single"
           selected={date}
           onSelect={handleDateSelect}
+          disabled={{ before: new Date() }}
           initialFocus
         />
         <div className="border-t p-3 flex items-center gap-2">

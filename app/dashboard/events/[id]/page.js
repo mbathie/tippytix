@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, Edit, ExternalLink, QrCode, Download, Copy, Ticket, DollarSign, Users, CheckCircle, ArrowLeft, ScanLine } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Loader2, Edit, ExternalLink, QrCode, Download, Copy, Ticket, DollarSign, Users, CheckCircle, ArrowLeft, ScanLine, Play, Pause, MoreVertical } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -58,31 +59,42 @@ export default function EventDetailPage() {
   }
 
   const stats = event.stats || {};
+  const isLive = event.status === 'active';
+
+  async function toggleStatus() {
+    const newStatus = isLive ? 'draft' : 'active';
+    try {
+      const res = await fetch(`/api/events/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus, isActive: newStatus === 'active' }),
+      });
+      if (!res.ok) throw new Error('Failed to update status');
+      setEvent(prev => ({ ...prev, status: newStatus, isActive: newStatus === 'active' }));
+      toast.success(newStatus === 'active' ? 'Event is now live!' : 'Event disabled');
+    } catch (err) {
+      toast.error(err.message);
+    }
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between">
         <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard/events')}>
           <ArrowLeft className="w-4 h-4 mr-1" /> Events
         </Button>
-      </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold">{event.name}</h1>
-            <Badge variant={event.status === 'active' ? 'default' : 'secondary'} className={
-              event.status === 'active' ? 'bg-green-100 text-green-700 hover:bg-green-100' : ''
-            }>{event.status}</Badge>
-          </div>
-          <p className="text-gray-500 mt-1">
-            {event.startDate ? new Date(event.startDate).toLocaleDateString('en-AU', {
-              weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',
-            }) : 'No date set'}
-            {event.venue ? ` · ${event.venue}` : ''}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+        {/* Desktop buttons */}
+        <div className="hidden md:flex items-center gap-2">
+          {isLive ? (
+            <Button variant="outline" size="sm" onClick={toggleStatus} className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600">
+              <Pause className="w-4 h-4 mr-1" /> Pause
+            </Button>
+          ) : (
+            <Button variant="outline" size="sm" onClick={toggleStatus} className="text-green-600 border-green-200 hover:bg-green-50 hover:text-green-700">
+              <Play className="w-4 h-4 mr-1" /> Launch
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={copyLink}>
             <Copy className="w-4 h-4 mr-1" /> Copy Link
           </Button>
@@ -102,9 +114,53 @@ export default function EventDetailPage() {
             </Button>
           </Link>
         </div>
+
+        {/* Mobile dropdown */}
+        <div className="md:hidden">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <MoreVertical className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={toggleStatus}>
+                {isLive ? <><Pause className="w-4 h-4 mr-2" /> Pause</> : <><Play className="w-4 h-4 mr-2" /> Launch</>}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={copyLink}>
+                <Copy className="w-4 h-4 mr-2" /> Copy Link
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={`/events/${event.slug}`} target="_blank">
+                  <ExternalLink className="w-4 h-4 mr-2" /> View Page
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={`/dashboard/events/${id}/scan`}>
+                  <ScanLine className="w-4 h-4 mr-2" /> Scan Tickets
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={`/dashboard/events/${id}/edit`}>
+                  <Edit className="w-4 h-4 mr-2" /> Edit
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div>
+        <h1 className="text-3xl font-bold">{event.name}</h1>
+        <p className="text-gray-500 mt-1">
+          {event.startDate ? new Date(event.startDate).toLocaleDateString('en-AU', {
+            weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit',
+          }) : 'No date set'}
+          {event.venue ? ` · ${event.venue}` : ''}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-gray-500 flex items-center gap-2"><Ticket className="w-4 h-4" /> Sold</CardTitle>
@@ -121,13 +177,10 @@ export default function EventDetailPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-gray-500 flex items-center gap-2"><DollarSign className="w-4 h-4" /> Revenue</CardTitle>
           </CardHeader>
-          <CardContent><p className="text-2xl font-bold">{formatCurrency(stats.totalRevenue || 0)}</p></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-gray-500 flex items-center gap-2"><DollarSign className="w-4 h-4" /> Fees</CardTitle>
-          </CardHeader>
-          <CardContent><p className="text-2xl font-bold">{formatCurrency(stats.totalFees || 0)}</p></CardContent>
+          <CardContent>
+            <p className="text-2xl font-bold">{formatCurrency(stats.totalRevenue || 0)}</p>
+            <p className="text-xs text-gray-400 mt-1">Fees: {formatCurrency(stats.totalFees || 0)}</p>
+          </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">

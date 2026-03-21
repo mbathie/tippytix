@@ -12,10 +12,10 @@ export async function generateMetadata({ params }) {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://tippytix.app';
   return {
     title: `${event.name} - Get Tickets`,
-    description: event.ogDescription || event.description || `Get tickets for ${event.name}`,
+    description: event.description || `Get tickets for ${event.name}`,
     openGraph: {
       title: `${event.name} - Get Tickets`,
-      description: event.ogDescription || event.description || `Get tickets for ${event.name}`,
+      description: event.description || `Get tickets for ${event.name}`,
       url: `${baseUrl}/events/${event.slug}`,
       images: event.bannerImage ? [{ url: event.bannerImage }] : [],
       type: 'website',
@@ -23,7 +23,7 @@ export async function generateMetadata({ params }) {
     twitter: {
       card: 'summary_large_image',
       title: `${event.name} - Get Tickets`,
-      description: event.ogDescription || event.description || `Get tickets for ${event.name}`,
+      description: event.description || `Get tickets for ${event.name}`,
       images: event.bannerImage ? [event.bannerImage] : [],
     },
   };
@@ -75,6 +75,7 @@ export default async function PublicEventPage({ params }) {
     bannerImage: event.bannerImage,
     primaryColor: event.primaryColor,
     secondaryColor: event.secondaryColor,
+    backgroundPattern: event.backgroundPattern,
     venue: event.venue,
     address: event.address,
     startDate: event.startDate?.toISOString(),

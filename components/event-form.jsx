@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,11 +8,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Plus, Trash2, GripVertical } from 'lucide-react';
+import { Loader2, Plus, Trash2, GripVertical, Shuffle, Upload, X } from 'lucide-react';
 import { slugify } from '@/lib/utils';
 import { toast } from 'sonner';
 import { DateTimePicker } from '@/components/date-time-picker';
-import ImageUpload from '@/components/ui/image-upload';
+import ColorPicker, { getColorHex } from '@/components/ui/color-picker';
+import PatternPicker from '@/components/ui/pattern-picker';
+import colors from '@/lib/tailwind-colors';
 
 export function EventForm({ event }) {
   const router = useRouter();
@@ -27,8 +29,9 @@ export function EventForm({ event }) {
     address: event?.address || '',
     startDate: event?.startDate ? new Date(event.startDate).toISOString().slice(0, 16) : '',
     endDate: event?.endDate ? new Date(event.endDate).toISOString().slice(0, 16) : '',
-    primaryColor: event?.primaryColor || '#6d28d9',
-    secondaryColor: event?.secondaryColor || '#ec4899',
+    primaryColor: event?.primaryColor || 'violet-700',
+    secondaryColor: event?.secondaryColor || 'pink-500',
+    backgroundPattern: event?.backgroundPattern || 'none',
     bannerImage: event?.bannerImage || '',
     status: event?.status || 'draft',
     ogDescription: event?.ogDescription || '',
@@ -56,6 +59,33 @@ export function EventForm({ event }) {
       }
       return updated;
     });
+  }
+
+  const bannerInputRef = useState(null)[1];
+  const bannerFileRef = { current: null };
+
+  function handleBannerFile(file) {
+    if (!file?.type?.startsWith('image/')) { toast.error('Please select an image'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error('Image must be less than 5MB'); return; }
+    const reader = new FileReader();
+    reader.onloadend = () => updateField('bannerImage', reader.result);
+    reader.readAsDataURL(file);
+  }
+
+  function randomizeColors() {
+    const colorNames = ['red', 'orange', 'amber', 'yellow', 'lime', 'green', 'emerald', 'teal', 'cyan', 'sky', 'blue', 'indigo', 'violet', 'purple', 'fuchsia', 'pink', 'rose'];
+    const shades = [500, 600, 700];
+    const pick = () => {
+      const name = colorNames[Math.floor(Math.random() * colorNames.length)];
+      const shade = shades[Math.floor(Math.random() * shades.length)];
+      return `${name}-${shade}`;
+    };
+    let primary = pick();
+    let secondary = pick();
+    while (secondary.split('-')[0] === primary.split('-')[0]) {
+      secondary = pick();
+    }
+    setForm(prev => ({ ...prev, primaryColor: primary, secondaryColor: secondary }));
   }
 
   function addCategory() {
@@ -163,8 +193,62 @@ export function EventForm({ event }) {
     }
   }
 
+  // Auto-save every 3 seconds when editing
+  const autoSaveTimer = useRef(null);
+  const lastSaved = useRef(JSON.stringify(form));
+  const [autoSaving, setAutoSaving] = useState(false);
+
+  const doAutoSave = useCallback(async () => {
+    if (!isEditing) return;
+    const current = JSON.stringify(form);
+    if (current === lastSaved.current) return;
+    lastSaved.current = current;
+    setAutoSaving(true);
+    try {
+      const payload = {
+        ...form,
+        ticketCategories: form.ticketCategories.map((cat, i) => ({
+          ...(cat._id ? { _id: cat._id } : {}),
+          name: cat.name,
+          description: cat.description,
+          price: Math.round(parseFloat(cat.price || 0) * 100),
+          quantity: parseInt(cat.quantity || 0),
+          sortOrder: i,
+          sequential: cat.sequential,
+        })),
+        startDate: form.startDate ? new Date(form.startDate).toISOString() : null,
+        endDate: form.endDate ? new Date(form.endDate).toISOString() : null,
+      };
+      await fetch(`/api/events/${event._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    } catch {}
+    setAutoSaving(false);
+  }, [form, isEditing, event]);
+
+  useEffect(() => {
+    if (!isEditing) return;
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(doAutoSave, 3000);
+    return () => clearTimeout(autoSaveTimer.current);
+  }, [form, doAutoSave, isEditing]);
+
+  const actionButtons = (
+    <div className="flex items-center gap-3">
+      <Button type="submit" disabled={loading} className="bg-violet-600 hover:bg-violet-700">
+        {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+        {isEditing ? 'Save Changes' : 'Create Event'}
+      </Button>
+      <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
+      {autoSaving && <span className="text-xs text-gray-400">Saving...</span>}
+    </div>
+  );
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {actionButtons}
       <Card>
         <CardHeader>
           <CardTitle>Event Details</CardTitle>
@@ -211,37 +295,59 @@ export function EventForm({ event }) {
           <CardTitle>Appearance</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <Label htmlFor="primaryColor">Primary Color</Label>
-              <div className="flex items-center gap-2">
-                <input type="color" id="primaryColor" value={form.primaryColor} onChange={e => updateField('primaryColor', e.target.value)} className="w-10 h-10 rounded cursor-pointer" />
-                <Input value={form.primaryColor} onChange={e => updateField('primaryColor', e.target.value)} className="flex-1" />
+          <div className="sm:col-span-2">
+            <Label>Banner Image</Label>
+            {form.bannerImage ? (
+              <div className="space-y-2">
+                <div className="rounded-lg overflow-hidden" style={{ aspectRatio: '3/1' }}>
+                  <img src={form.bannerImage} alt="Banner" className="w-full h-full object-cover" />
+                </div>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => bannerFileRef.current?.click()}>
+                    <Upload className="w-4 h-4 mr-1" /> Change
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" className="text-red-500 hover:text-red-700" onClick={() => updateField('bannerImage', '')}>
+                    <X className="w-4 h-4 mr-1" /> Remove
+                  </Button>
+                  <input ref={el => bannerFileRef.current = el} type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && handleBannerFile(e.target.files[0])} />
+                </div>
               </div>
-            </div>
-            <div>
-              <Label htmlFor="secondaryColor">Secondary Color</Label>
-              <div className="flex items-center gap-2">
-                <input type="color" id="secondaryColor" value={form.secondaryColor} onChange={e => updateField('secondaryColor', e.target.value)} className="w-10 h-10 rounded cursor-pointer" />
-                <Input value={form.secondaryColor} onChange={e => updateField('secondaryColor', e.target.value)} className="flex-1" />
+            ) : (
+              <div
+                onClick={() => bannerFileRef.current?.click()}
+                onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+                onDrop={e => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.files?.[0] && handleBannerFile(e.dataTransfer.files[0]); }}
+                className="rounded-lg border-2 border-dashed border-gray-300 hover:border-gray-400 cursor-pointer transition-colors flex flex-col items-center justify-center gap-2 p-8 text-center"
+                style={{ aspectRatio: '3/1' }}
+              >
+                <Upload className="w-8 h-8 text-gray-400" />
+                <p className="text-sm text-gray-500">Drag and drop a banner image, or click to browse</p>
+                <p className="text-xs text-gray-400">Recommended: 1200 x 400px. Max 5MB</p>
+                <input ref={el => bannerFileRef.current = el} type="file" accept="image/*" className="hidden" onChange={e => e.target.files?.[0] && handleBannerFile(e.target.files[0])} />
               </div>
-            </div>
-            <div className="sm:col-span-2">
-              <Label>Banner Image</Label>
-              <ImageUpload
-                value={form.bannerImage}
-                onChange={v => updateField('bannerImage', v)}
-                aspectRatio="3/1"
-                placeholder="Drag and drop a banner image, or click to browse"
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <Label htmlFor="ogDescription">Share Description (for social media previews)</Label>
-              <Textarea id="ogDescription" value={form.ogDescription} onChange={e => updateField('ogDescription', e.target.value)} rows={2} placeholder="Brief description for when this link is shared..." />
-            </div>
+            )}
           </div>
-          <div className="rounded-lg p-4 mt-4" style={{ background: `linear-gradient(135deg, ${form.primaryColor}, ${form.secondaryColor})` }}>
-            <p className="text-white text-sm font-medium text-center">Color Preview</p>
+          <div className="flex items-end gap-4 flex-wrap">
+            <div>
+              <Label>Primary Colour</Label>
+              <ColorPicker value={form.primaryColor} onChange={v => updateField('primaryColor', v)} />
+            </div>
+            <div>
+              <Label>Secondary Colour</Label>
+              <ColorPicker value={form.secondaryColor} onChange={v => updateField('secondaryColor', v)} />
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={randomizeColors} className="h-10">
+              <Shuffle className="w-4 h-4 mr-1" /> Randomize
+            </Button>
+          </div>
+          <div>
+            <Label>Background Pattern</Label>
+            <PatternPicker
+              value={form.backgroundPattern}
+              onChange={v => updateField('backgroundPattern', v)}
+              previewColor={getColorHex(form.secondaryColor) || '#ec4899'}
+              previewBg={`${getColorHex(form.secondaryColor) || '#ec4899'}15`}
+            />
           </div>
         </CardContent>
       </Card>
@@ -330,35 +436,7 @@ export function EventForm({ event }) {
         </CardContent>
       </Card>
 
-      {isEditing && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Event Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Select value={form.status} onValueChange={v => updateField('status', v)}>
-              <SelectTrigger className="w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="paused">Paused</SelectItem>
-                <SelectItem value="ended">Ended</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="flex gap-3">
-        <Button type="submit" disabled={loading} className="bg-violet-600 hover:bg-violet-700">
-          {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-          {isEditing ? 'Save Changes' : 'Create Event'}
-        </Button>
-        <Button type="button" variant="outline" onClick={() => router.back()}>Cancel</Button>
-      </div>
+      {actionButtons}
     </form>
   );
 }

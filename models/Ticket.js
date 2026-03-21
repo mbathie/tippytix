@@ -64,6 +64,6 @@ const TicketSchema = new mongoose.Schema({
 
 TicketSchema.index({ eventId: 1 });
 TicketSchema.index({ orderId: 1 });
-TicketSchema.index({ qrCode: 1 });
+// qrCode index already created by unique: true on the field
 
 export default mongoose.models.Ticket || mongoose.model('Ticket', TicketSchema);
