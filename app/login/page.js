@@ -2,26 +2,53 @@
 
 import { useState } from 'react';
 import { signIn } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Ticket, Mail, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [mode, setMode] = useState('password'); // 'password' | 'magic-link'
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [emailSent, setEmailSent] = useState(false);
+  const router = useRouter();
+
+  async function handlePasswordSignIn(e) {
+    e.preventDefault();
+    if (!email || !password) return;
+    setLoading(true);
+    setError('');
+
+    const result = await signIn('credentials', {
+      email,
+      password,
+      redirect: false,
+    });
+
+    if (result?.error) {
+      setError('Invalid email or password');
+      setLoading(false);
+    } else {
+      router.push('/dashboard');
+    }
+  }
 
   async function handleEmailSignIn(e) {
     e.preventDefault();
     if (!email) return;
     setLoading(true);
+    setError('');
     try {
       await signIn('nodemailer', { email, redirect: false });
       setEmailSent(true);
-    } catch (error) {
-      console.error('Sign in error:', error);
+    } catch {
+      setError('Failed to send magic link');
     } finally {
       setLoading(false);
     }
@@ -87,19 +114,77 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <form onSubmit={handleEmailSignIn} className="space-y-3">
-            <Input
-              type="email"
-              placeholder="name@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <Button type="submit" className="w-full bg-violet-600 hover:bg-violet-700" disabled={loading}>
-              {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
-              Send magic link
-            </Button>
-          </form>
+          {error && (
+            <div className="text-red-600 text-sm text-center bg-red-50 rounded-md py-2">
+              {error}
+            </div>
+          )}
+
+          {mode === 'password' && (
+            <form onSubmit={handlePasswordSignIn} className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full bg-violet-600 hover:bg-violet-700" disabled={loading}>
+                {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                {loading ? 'Signing in...' : 'Sign in'}
+              </Button>
+            </form>
+          )}
+
+          {mode === 'magic-link' && (
+            <form onSubmit={handleEmailSignIn} className="space-y-3">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full bg-violet-600 hover:bg-violet-700" disabled={loading}>
+                {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
+                Send magic link
+              </Button>
+            </form>
+          )}
+
+          <div className="text-center">
+            <button
+              type="button"
+              className="text-sm text-violet-600 hover:underline"
+              onClick={() => { setMode(mode === 'password' ? 'magic-link' : 'password'); setError(''); }}
+            >
+              {mode === 'password' ? 'Sign in with magic link instead' : 'Sign in with password instead'}
+            </button>
+          </div>
+
+          <p className="text-center text-sm text-muted-foreground">
+            Don&apos;t have an account?{' '}
+            <Link href="/signup" className="text-violet-600 hover:underline">Sign up</Link>
+          </p>
 
           <p className="text-center text-sm text-muted-foreground">
             By signing in, you agree to our{' '}
